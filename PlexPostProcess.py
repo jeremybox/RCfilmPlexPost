@@ -17,19 +17,23 @@ if not os.path.exists(config_file_path):
   print 'Make a copy of PlexConfig.conf.example named PlexConfig.conf, modify as necessary, and place in the same directory as this script.'
   sys.exit(1)
 
-config = ConfigParser.SafeConfigParser({'comskip-ini-path' : os.path.join(os.path.dirname(os.path.realpath(__file__)), 'comskip.ini'), 'temp-root' : tempfile.gettempdir(), 'nice-level' : '0'})
+config = ConfigParser.SafeConfigParser({'comskip-ini-path' : os.path.join(os.path.dirname(os.path.realpath(__file__)), 'comskip.ini'), 'temp-root' : tempfile.gettempdir(), 'nice-level' : '0', 'transcode-after-comskip' : False, 'stash-original' : False})
 config.read(config_file_path)
 
 COMSKIP_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'comskip-path')))
 COMSKIP_INI_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'comskip-ini-path')))
 FFMPEG_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'ffmpeg-path')))
 LOG_FILE_PATH = os.path.expandvars(os.path.expanduser(config.get('Logging', 'logfile-path')))
+STASH_DIR_PATH = os.path.expandvars(os.path.expanduser(config.get('File Manipulation', 'stash-dir')))
 CONSOLE_LOGGING = config.getboolean('Logging', 'console-logging')
 TEMP_ROOT = os.path.expandvars(os.path.expanduser(config.get('File Manipulation', 'temp-root')))
 COPY_ORIGINAL = config.getboolean('File Manipulation', 'copy-original')
 SAVE_ALWAYS = config.getboolean('File Manipulation', 'save-always')
 SAVE_FORENSICS = config.getboolean('File Manipulation', 'save-forensics')
 NICE_LEVEL = config.get('Helper Apps', 'nice-level')
+MAX_VERT_RES = config.get('Transcoding', 'max-vertical-resolution')
+TRANSCODE = config.getboolean('Transcoding', 'transcode-after-comskip')
+STASH_ORIGINAL = config.getboolean('File Manipulation', 'stash-original')
 
 # Logging.
 session_uuid = str(uuid.uuid4())
@@ -54,7 +58,7 @@ def sizeof_fmt(num, suffix='B'):
   return "%.1f%s%s" % (num, 'Y', suffix)
 
 if len(sys.argv) < 2:
-  print 'Usage: PlexComskip.py input-file.mkv'
+  print 'Usage: PlexPostProcess.py input-file.mkv'
   sys.exit(1)
 
 # Clean up after ourselves and exit.
@@ -74,7 +78,7 @@ def cleanup_and_exit(temp_dir, keep_temp=False):
   sys.exit(0)
 
 # If we're in a git repo, let's see if we can report our sha.
-logging.info('PlexComskip got invoked from %s' % os.path.realpath(__file__))
+logging.info('PlexPostProcess got invoked from %s' % os.path.realpath(__file__))
 try:
   git_sha = subprocess.check_output('git rev-parse --short HEAD', shell=True)
   if git_sha:
@@ -129,6 +133,7 @@ except Exception, e:
   logging.error('Something went wrong during comskip analysis: %s' % e)
   cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
 
+#process the comskip output and generate segments
 edl_file = os.path.join(temp_dir, video_name + '.edl')
 logging.info('Using EDL: ' + edl_file)
 try:
@@ -186,6 +191,7 @@ except Exception, e:
   logging.error('Something went wrong during splitting: %s' % e)
   cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
 
+#concat files into new mkv
 logging.info('Going to concatenate %s files from the segment list.' % len(segment_files))
 try:
   cmd = NICE_ARGS + [FFMPEG_PATH, '-y', '-f', 'concat', '-i', segment_list_file_path, '-c', 'copy', os.path.join(temp_dir, video_basename)]
@@ -196,6 +202,26 @@ except Exception, e:
   logging.error('Something went wrong during concatenation: %s' % e)
   cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
 
+#IF specified, transcode into h264
+if TRANSCODE:
+  logging.info('Going to transcode the file to h264')
+  try:
+    video_height = subprocess.check_output(["mediainfo", '--Inform="Video;%Height%"', os.path.join(temp_dir, video_basename)])
+    shrink_yes = video_height > MAX_VERT_RES
+    ffmpeg_scale_command = 'scale=-1:' + MAX_VERT_RES 
+    ffmpeg_args = [FFMPEG_PATH, '-i', os.path.join(temp_dir, video_basename), '-c:v', 'libx264', '-crf', '20', '-vf', 'yadif', os.path.join(temp_dir, 'temp.mkv') ]
+    if shrink_yes:
+      ffmpeg_args.insert(len(ffmpeg_args)-1, '-vf')
+      ffmpeg_args.insert(len(ffmpeg_args)-1, ffmpeg_scale_command)
+    transcode_cmd = NICE_ARGS + ffmpeg_args
+    logging.info('[ffmpeg] Command: %s' % transcode_cmd)
+    subprocess.call(transcode_cmd)
+
+  except Exception, e:
+    logging.error('Something went wrong during transcoding: %s' % e)
+    cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
+
+#Sanity check the file and copy back
 logging.info('Sanity checking our work...')
 try:
   input_size = os.path.getsize(os.path.abspath(video_path))
@@ -205,8 +231,17 @@ try:
     cleanup_and_exit(temp_dir, SAVE_ALWAYS)
   elif input_size and 1.1 > float(output_size) / float(input_size) > 0.5:
     logging.info('Output file size looked sane, we\'ll replace the original: %s -> %s' % (sizeof_fmt(input_size), sizeof_fmt(output_size)))
+    #If we have a trash-dir then copy out the original file before copying over it
+    if STASH_ORIGINAL:
+      logging.info('Copying the original file into the stash directory: %s -> %s' % (video_basename, STASH_DIR_PATH)) 
+      shutil.copyfile(os.path.join(original_video_dir, video_basename), os.path.join(STASH_DIR_PATH, video_basename) )
+    #now copy the file back into place
+    if TRANSCODE:
+      output_file = os.path.join(temp_dir, 'temp.mkv')
+    else:
+      output_file = os.path.join(temp_dir, video_basename)
     logging.info('Copying the output file into place: %s -> %s' % (video_basename, original_video_dir))
-    shutil.copyfile(os.path.join(temp_dir, video_basename), os.path.join(original_video_dir, video_basename) )
+    shutil.copyfile(output_file, os.path.join(original_video_dir, video_basename) )
     cleanup_and_exit(temp_dir, SAVE_ALWAYS)
   else:
     logging.info('Output file size looked wonky (too big or too small); we won\'t replace the original: %s -> %s' % (sizeof_fmt(input_size), sizeof_fmt(output_size)))
