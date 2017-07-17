@@ -22,7 +22,7 @@ Improvements over the original PlexComskip include the following:
 
 You will need the following software
 
-- Python 2.7 (or something close to it, you are not getting extensively tested sofwtare here)
+- Python 2.7 (or something close to it, you are not getting extensively tested software here)
 - MKVToolNix https://mkvtoolnix.download/
 - comskip https://github.com/erikkaashoek/Comskip
 - ffmpeg (available in pretty much any distribution)
