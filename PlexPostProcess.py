@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import ConfigParser
 import logging
@@ -23,6 +23,7 @@ config.read(config_file_path)
 COMSKIP_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'comskip-path')))
 COMSKIP_INI_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'comskip-ini-path')))
 FFMPEG_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'ffmpeg-path')))
+MEDIAINFO_PATH = os.path.expandvars(os.path.expanduser(config.get('Helper Apps', 'mediainfo-path')))
 LOG_FILE_PATH = os.path.expandvars(os.path.expanduser(config.get('Logging', 'logfile-path')))
 STASH_DIR_PATH = os.path.expandvars(os.path.expanduser(config.get('File Manipulation', 'stash-dir')))
 CONSOLE_LOGGING = config.getboolean('Logging', 'console-logging')
@@ -31,7 +32,7 @@ COPY_ORIGINAL = config.getboolean('File Manipulation', 'copy-original')
 SAVE_ALWAYS = config.getboolean('File Manipulation', 'save-always')
 SAVE_FORENSICS = config.getboolean('File Manipulation', 'save-forensics')
 NICE_LEVEL = config.get('Helper Apps', 'nice-level')
-MAX_VERT_RES = config.get('Transcoding', 'max-vertical-resolution')
+MAX_VERT_RES = int(config.get('Transcoding', 'max-vertical-resolution'))
 TRANSCODE = config.getboolean('Transcoding', 'transcode-after-comskip')
 STASH_ORIGINAL = config.getboolean('File Manipulation', 'stash-original')
 
@@ -206,11 +207,15 @@ except Exception, e:
 if TRANSCODE:
   logging.info('Going to transcode the file to h264')
   try:
-    video_height = subprocess.check_output(["mediainfo", '--Inform="Video;%Height%"', os.path.join(temp_dir, video_basename)])
-    shrink_yes = video_height > MAX_VERT_RES
-    ffmpeg_scale_command = 'scale=-1:' + MAX_VERT_RES 
+    video_height = int(subprocess.check_output([MEDIAINFO_PATH, '--Inform=Video;%Height%', os.path.join(temp_dir, video_basename)]))
+    logging.info('Video Vertical Resolution found to be: %s' % video_height)
+    if video_height > MAX_VERT_RES:
+      shrink_yes = True
+    else:
+      shrink_yes = False
     ffmpeg_args = [FFMPEG_PATH, '-i', os.path.join(temp_dir, video_basename), '-c:v', 'libx264', '-crf', '20', '-vf', 'yadif', os.path.join(temp_dir, 'temp.mkv') ]
     if shrink_yes:
+      ffmpeg_scale_command = 'scale=-1:' + str(MAX_VERT_RES)
       ffmpeg_args.insert(len(ffmpeg_args)-1, '-vf')
       ffmpeg_args.insert(len(ffmpeg_args)-1, ffmpeg_scale_command)
     transcode_cmd = NICE_ARGS + ffmpeg_args
@@ -238,10 +243,14 @@ try:
     #now copy the file back into place
     if TRANSCODE:
       output_file = os.path.join(temp_dir, 'temp.mkv')
+      logging.info('Copying the transcoded file into place: %s -> %s' % ((video_name + ' (h264)' + video_ext), original_video_dir))
+      shutil.copyfile(output_file, os.path.join(original_video_dir, (video_name + ' (h264)' + video_ext) ) )
+      logging.info('Deleting the original file: %s in %s' % (video_basename, original_video_dir))
+      os.unlink(os.path.join(original_video_dir, video_basename))
     else:
       output_file = os.path.join(temp_dir, video_basename)
-    logging.info('Copying the output file into place: %s -> %s' % (video_basename, original_video_dir))
-    shutil.copyfile(output_file, os.path.join(original_video_dir, video_basename) )
+      logging.info('Copying the output file into place: %s -> %s' % (video_basename, original_video_dir))
+      shutil.copyfile(output_file, os.path.join(original_video_dir, video_basename) )
     cleanup_and_exit(temp_dir, SAVE_ALWAYS)
   else:
     logging.info('Output file size looked wonky (too big or too small); we won\'t replace the original: %s -> %s' % (sizeof_fmt(input_size), sizeof_fmt(output_size)))
