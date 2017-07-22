@@ -59,7 +59,7 @@ def sizeof_fmt(num, suffix='B'):
   return "%.1f%s%s" % (num, 'Y', suffix)
 
 if len(sys.argv) < 2:
-  print 'Usage: PlexPostProcess.py input-file.mkv'
+  print 'Usage: PlexPostProcess.py input-file'
   sys.exit(1)
 
 # Clean up after ourselves and exit.
@@ -73,6 +73,7 @@ def cleanup_and_exit(temp_dir, keep_temp=False):
     except Exception, e:
       logging.error('Problem whacking temp dir: %s' % temp_dir)
       logging.error(str(e))
+      sys.exit(1)
 
   # Exit cleanly.
   logging.info('Done processing!')
@@ -226,7 +227,7 @@ if TRANSCODE:
     logging.error('Something went wrong during transcoding: %s' % e)
     cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
 
-#Sanity check the file and copy back
+#Sanity check the file and copy back  TODO move this to more logical place
 logging.info('Sanity checking our work...')
 try:
   input_size = os.path.getsize(os.path.abspath(video_path))
@@ -243,8 +244,8 @@ try:
     #now copy the file back into place
     if TRANSCODE:
       output_file = os.path.join(temp_dir, 'temp.mkv')
-      logging.info('Copying the transcoded file into place: %s -> %s' % ((video_name + ' (h264)' + video_ext), original_video_dir))
-      shutil.copyfile(output_file, os.path.join(original_video_dir, (video_name + ' (h264)' + video_ext) ) )
+      logging.info('Copying the transcoded file into place: %s -> %s' % ((video_name + ' (h264)' + '.mkv'), original_video_dir))
+      shutil.copyfile(output_file, os.path.join(original_video_dir, (video_name + ' (h264)' + '.mkv') ) )
       logging.info('Deleting the original file: %s in %s' % (video_basename, original_video_dir))
       os.unlink(os.path.join(original_video_dir, video_basename))
     else:
