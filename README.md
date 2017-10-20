@@ -6,7 +6,9 @@ RCfilmPlexPost requires python 2.x on your system to run so if you don’t have 
 In order to run from the Plex postproccessing you must use the RCwrapper.sh
 
 Files that will need to be edited to work with your system.
+
 RCwrapper.sh
+
 Copy RCfilmPlexPost.conf then edit
 
 Test with ./RCFilmPlexPost.py in cli first then test in Plex with RCwapper.sh
