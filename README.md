@@ -1,11 +1,20 @@
-#RCfilmPlexPost: Updates
-added RCwrapper.sh to bypass Plex's internal python
-you must have python 2.x on your system
-in order to run from plex postproccessing you must use the RCwrapper.sh
+#RCfilmPlexPost Updates:
+
+I added a RCwrapper.sh to bypass the Plex internal python.
+RCfilmPlexPost requires python 2.x on your system to run so if you don’t have it install one and run with env. 
+
+In order to run from the Plex postproccessing you must use the RCwrapper.sh
+
+Files that will need to be edited to work with your system.
+RCwrapper.sh
+Copy RCfilmPlexPost.conf then edit
+
+Test with ./RCFilmPlexPost.py in cli first then test in Plex with RCwapper.sh
+
+
+
 
 This script was forked from https://github.com/ekim1337/PlexComskip
-
-The original application was discussed on the plex forums: https://forums.plex.tv/discussion/232408/postproccessing-usage-examples/p1
 
 This script is a complete post processing solution which includes the following functionality:
 

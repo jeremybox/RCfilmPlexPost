@@ -23,7 +23,7 @@ nice-level: 20
 transcode-after-comskip: True
 
 #Specify a max vertical resolution. Any files larger than this will be proportionally resized during transcoding to h264. Resolution is determined with MediaInfo
-#max-vertical-resolution: 720
+max-vertical-resolution: 1080
 
 [Logging]
 
