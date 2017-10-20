@@ -1,0 +1,52 @@
+#Sample configuration for RCfilmPlexPost. Comments are noted with #. Delete # to enable and specify an option
+
+[Helper Apps]
+
+# Path to the comskip binary.
+comskip-path: /usr/local/bin/comskip
+
+# Path to the comskip INI file. Defaults to the same directory as the RCfilmPlexPost script.
+# comskip-ini-path: ~/comskip.ini
+
+# Path to the ffmpeg binary.
+ffmpeg-path: /usr/bin/ffmpeg
+
+#Path to mediainfo binary, used to read resolution from files
+mediainfo-path: /usr/bin/mediainfo
+
+# Nice level. Used for file copies, comskip analysis, and ffmpeg processing. 0 (default, full priority) - 20 (most nice)
+#nice-level: 10
+
+[Transcoding]
+
+#Specify if you would like the script to transcode the file to h264 after removing the commercials
+transcode-after-comskip: True
+
+#Specify a max vertical resolution. Any files larger than this will be proportionally resized during transcoding to h264. Resolution is determined with MediaInfo
+#max-vertical-resolution: 720
+
+[Logging]
+
+# Log file location.
+logfile-path: ~/Library/Logs/RCfilmPlexPost.log
+
+# Split the log output to the console? Useful for debugging.
+console-logging: True
+
+[File Manipulation]
+
+#Specify whether to save a copy of the original recording. A directory then needs specified to stash the original file. This gives you something to restore if comskip or transcoding goes wrong
+#stash-original: True
+#stash-dir: /media/share/RCfilmPlexPost
+
+# Specify a temp directory for interstitial files. This should be local, fast, and have enough free space for ~2x your largest video. Defaults to system temp location.
+#temp-root: /tmp
+
+# Should we copy the original file to the temp directory? Useful if disk access to the original is slower than your temp location. Defaults to False.
+copy-original: False
+
+# Always save the intermediate files? Useful for debugging. Defaults to False.
+save-always: False
+
+# Save intermediate files when something goes wrong? Also useful for debugging and less space intensive. Defaults to True. Beware of leaving this on during testing or debugging because several large temp files will be be created
+save-forensics: True
