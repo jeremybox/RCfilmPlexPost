@@ -15,7 +15,7 @@ ffmpeg-path: /usr/bin/ffmpeg
 mediainfo-path: /usr/bin/mediainfo
 
 # Nice level. Used for file copies, comskip analysis, and ffmpeg processing. 0 (default, full priority) - 20 (most nice)
-#nice-level: 10
+nice-level: 20
 
 [Transcoding]
 
@@ -36,7 +36,7 @@ console-logging: True
 [File Manipulation]
 
 #Specify whether to save a copy of the original recording. A directory then needs specified to stash the original file. This gives you something to restore if comskip or transcoding goes wrong
-#stash-original: True
+stash-original: False
 #stash-dir: /media/share/RCfilmPlexPost
 
 # Specify a temp directory for interstitial files. This should be local, fast, and have enough free space for ~2x your largest video. Defaults to system temp location.
