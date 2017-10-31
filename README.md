@@ -10,6 +10,8 @@ It takes my server about 45 minutes to transcode at 1080 broadcast of one hour.
 
 Before the file size was 1 to 3 GB. Now the total file size is around 350 to 400 MB for the same quality
 
+Added support to copy subtitles & metadata information over from original source
+
 You can of course tweak all the settings to your own liking
 
 October/20/2017
