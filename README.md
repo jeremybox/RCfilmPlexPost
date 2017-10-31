@@ -1,5 +1,16 @@
 #RCfilmPlexPost Updates:
 
+October/31/2017
+Ok to save space on my NAS drives and to become more MacOS compatible. I have updated the code to a mp4 container & FFmpeg will transcode HEVC. I have included the vtag hvc1 for the Mack OS and iOS compatibility. This means that if you update your iOS and TVos profiles to allow direct play of HEVC and of course you’re running iOS 11 then you will have a great day. 
+
+I have currently tested this with resolutions all the way to 4K with my Apple TV 4K
+
+It takes my server about 45 minutes to transcode at 1080 broadcast of one hour. Before this was about a 1 to 3 GB file. Now the total file size is around 350 to 400 MB for the same quality
+
+You can of course tweak all the settings to your own liking
+
+October/20/2017
+
 I added a RCwrapper.sh to bypass the Plex internal python.
 RCfilmPlexPost requires python 2.x on your system to run so if you don’t have it install one and run with env. 
 

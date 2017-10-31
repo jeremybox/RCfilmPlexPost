@@ -204,9 +204,9 @@ except Exception, e:
   logging.error('Something went wrong during concatenation: %s' % e)
   cleanup_and_exit(temp_dir, SAVE_ALWAYS or SAVE_FORENSICS)
 
-#IF specified, transcode into h264
+#IF specified, transcode into HEVC
 if TRANSCODE:
-  logging.info('Going to transcode the file to h264')
+  logging.info('Going to transcode the file to HEVC')
   try:
     video_height = int(subprocess.check_output([MEDIAINFO_PATH, '--Inform=Video;%Height%', os.path.join(temp_dir, video_basename)]))
     logging.info('Video Vertical Resolution found to be: %s' % video_height)
@@ -214,7 +214,7 @@ if TRANSCODE:
       shrink_yes = True
     else:
       shrink_yes = False
-    ffmpeg_args = [FFMPEG_PATH, '-i', os.path.join(temp_dir, video_basename), '-c:v', 'libx264', '-crf', '20', '-vf', 'yadif', os.path.join(temp_dir, 'temp.mp4') ]
+    ffmpeg_args = [FFMPEG_PATH, '-i', os.path.join(temp_dir, video_basename), '-c:v', 'libx265', '-preset', 'veryfast', '-crf', '23', '-b:v', '1300k', '-tag:v', 'hvc1', '-vsync', '2', '-r', '30', '-c:a', 'aac', '-map_metadata', '0', '-b:a', '128k', '-c:s', 'copy', '-threads', '4', '-vf', 'yadif', os.path.join(temp_dir, 'temp.mp4') ]
     if shrink_yes:
       ffmpeg_scale_command = 'scale=-1:' + str(MAX_VERT_RES)
       ffmpeg_args.insert(len(ffmpeg_args)-1, '-vf')
@@ -232,7 +232,7 @@ logging.info('Sanity checking our work...')
 try:
   input_size = os.path.getsize(os.path.abspath(video_path))
   output_size = os.path.getsize(os.path.abspath(os.path.join(temp_dir, video_basename)))
-  if input_size and 1.01 > float(output_size) / float(input_size) > 0.99:
+  if input_size and 1.01 > float(output_size) / float(input_size) > 2.0:
     logging.info('Output file size was too similar (doesn\'t look like we did much); we won\'t replace the original: %s -> %s' % (sizeof_fmt(input_size), sizeof_fmt(output_size)))
     cleanup_and_exit(temp_dir, SAVE_ALWAYS)
   elif input_size and 1.1 > float(output_size) / float(input_size) > 0.1:
@@ -244,8 +244,8 @@ try:
     #now copy the file back into place
     if TRANSCODE:
       output_file = os.path.join(temp_dir, 'temp.mp4')
-      logging.info('Copying the transcoded file into place: %s -> %s' % ((video_name + ' (h264)' + '.mp4'), original_video_dir))
-      shutil.copyfile(output_file, os.path.join(original_video_dir, (video_name + ' (h264)' + '.mp4') ) )
+      logging.info('Copying the transcoded file into place: %s -> %s' % ((video_name + ' (HEVC)' + '.mp4'), original_video_dir))
+      shutil.copyfile(output_file, os.path.join(original_video_dir, (video_name + ' (HEVC)' + '.mp4') ) )
       logging.info('Deleting the original file: %s in %s' % (video_basename, original_video_dir))
       os.unlink(os.path.join(original_video_dir, video_basename))
     else:
