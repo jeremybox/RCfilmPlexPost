@@ -13,4 +13,4 @@ unset SUPPORT_PATH
 #***** call main script with argument
 $HOME/RCfilmPlexPost/./RCfilmPlexPost.py "$1"
 
-echo "RCwrapper script end: $1" >> /home/ryancox/Logs/RCfilmPlexPost.log
+echo "RCwrapper script end: $1" >> $HOME/Logs/RCfilmPlexPost.log
